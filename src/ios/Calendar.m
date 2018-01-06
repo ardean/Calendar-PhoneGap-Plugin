@@ -44,26 +44,19 @@
   NSString* notes      = [options objectForKey:@"notes"];
   NSNumber* startTime  = [options objectForKey:@"startTime"];
   NSNumber* endTime    = [options objectForKey:@"endTime"];
+  BOOL* allDay         = [[options objectForKey:@"allDay"] boolValue];
 
   [self.commandDelegate runInBackground: ^{
     NSTimeInterval _startInterval = [startTime doubleValue] / 1000; // strip millis
-    NSDate *myStartDate = [NSDate dateWithTimeIntervalSince1970:_startInterval];
     NSTimeInterval _endInterval = [endTime doubleValue] / 1000; // strip millis
 
     EKEvent *myEvent = [EKEvent eventWithEventStore: self.eventStore];
     myEvent.title = title;
     myEvent.location = location;
     myEvent.notes = notes;
-    myEvent.startDate = myStartDate;
-
-    int duration = _endInterval - _startInterval;
-    int moduloDay = duration % (60 * 60 * 24);
-    if (moduloDay == 0) {
-      myEvent.allDay = YES;
-      myEvent.endDate = [NSDate dateWithTimeIntervalSince1970:_endInterval - 1];
-    } else {
-      myEvent.endDate = [NSDate dateWithTimeIntervalSince1970:_endInterval];
-    }
+    myEvent.startDate = [NSDate dateWithTimeIntervalSince1970:_startInterval];
+    myEvent.allDay = allDay;
+    myEvent.endDate = [NSDate dateWithTimeIntervalSince1970:_endInterval];
     myEvent.calendar = calendar;
 
     // if a custom reminder is required: use createCalendarWithOptions
@@ -380,7 +373,9 @@
   for (EKEvent * event in matchingEvents) {
     NSMutableDictionary *entry = [[NSMutableDictionary alloc] initWithObjectsAndKeys:
                                   event.title, @"title",
-                                  event.calendar.title, @"calendar",
+                                  event.calendar.calendarIdentifier, @"calendarId",
+                                  event.calendar.title, @"calendarName",
+                                  [NSNumber numberWithBool:event.allDay], @"allDay",
                                   event.eventIdentifier, @"id",
                                   [df stringFromDate:event.startDate], @"startDate",
                                   [df stringFromDate:event.endDate], @"endDate",
@@ -538,6 +533,7 @@
   NSString* notes      = [options objectForKey:@"notes"];
   NSNumber* startTime  = [options objectForKey:@"startTime"];
   NSNumber* endTime    = [options objectForKey:@"endTime"];
+  BOOL* allDay         = [[options objectForKey:@"allDay"] boolValue];
 
   NSDictionary* calOptions = [options objectForKey:@"options"];
   NSNumber* firstReminderMinutes = [calOptions objectForKey:@"firstReminderMinutes"];
@@ -556,23 +552,14 @@
     }
 
     NSTimeInterval _startInterval = [startTime doubleValue] / 1000; // strip millis
-    NSDate *myStartDate = [NSDate dateWithTimeIntervalSince1970:_startInterval];
-
     NSTimeInterval _endInterval = [endTime doubleValue] / 1000; // strip millis
 
     myEvent.title = title;
     myEvent.location = location;
     myEvent.notes = notes;
-    myEvent.startDate = myStartDate;
-
-    int duration = _endInterval - _startInterval;
-    int moduloDay = duration % (60*60*24);
-    if (moduloDay == 0) {
-      myEvent.allDay = YES;
-      myEvent.endDate = [NSDate dateWithTimeIntervalSince1970:_endInterval-1];
-    } else {
-      myEvent.endDate = [NSDate dateWithTimeIntervalSince1970:_endInterval];
-    }
+    myEvent.allDay = allDay;
+    myEvent.startDate = [NSDate dateWithTimeIntervalSince1970:_startInterval];
+    myEvent.endDate = [NSDate dateWithTimeIntervalSince1970:_endInterval];
 
     EKCalendar* calendar = nil;
     CDVPluginResult *pluginResult = nil;
